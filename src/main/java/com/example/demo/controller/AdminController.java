@@ -232,6 +232,9 @@ public class AdminController {
                 newBooking.setStatus("booked"); // Auto-approve
                 newBooking.setTel("ADMIN");     // Marker for admin bookings
                 
+                if (!"NONE".equalsIgnoreCase(recurrence)) {
+                    newBooking.setRecurring(true);
+                }  
                 bookingService.saveBooking(newBooking);
             }
 

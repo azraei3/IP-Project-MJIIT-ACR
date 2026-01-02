@@ -81,6 +81,8 @@ public class Booking {
     @Column(name = "session_id")
     private String sessionId;
 
+    
+    private boolean recurring = false;
     //Constructor
     public Booking(){}
     
@@ -140,6 +142,8 @@ public class Booking {
         this.approvedBy = approvedBy; 
     }
 
+    public boolean isRecurring() { return recurring; }
+    public void setRecurring(boolean recurring) { this.recurring = recurring; }
     /*public LocalDate getDate() { return date; }
     public void setDate(LocalDate date) { this.date = date; }
     public LocalTime getStartTime() { return startTime; }

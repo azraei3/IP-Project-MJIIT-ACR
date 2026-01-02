@@ -164,6 +164,9 @@
                                     <span th:if="${isPending}">Pending</span>
                                     <span th:if="${!isPending and isMine}">My Booking</span>
                                     <span th:if="${!isPending and isBooked and !isMine}">Booked</span>
+                                    <div th:if="${isBooked}">
+                                        <span class="cell-text" th:text="${booking.purpose}">Subject</span>
+                                    </div>
                                     <span th:unless="${isBooked}">&nbsp;</span>
                                 </td>
                             </tr>

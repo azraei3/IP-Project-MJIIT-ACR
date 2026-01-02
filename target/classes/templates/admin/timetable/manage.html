@@ -77,6 +77,10 @@
             line-height: 1.2;
             padding: 0 2px;
         }
+        .selectable.recurring { 
+    background-color: #805ad5 ; 
+    color: white; 
+}
     </style>
 </head>
 <body>
@@ -181,6 +185,7 @@
 
                                     th:classappend="${isBooked} ? (${isMine} ? 'my-booking selectable' : 'booked selectable') : (${isPast} ? 'selectable past-slot' : 'selectable')"
                                         
+                                  
                                     th:title="${isBooked} ? ('Subject: ' + booking.purpose + '&#10;' + 'User: ' + booking.user.fullName + '&#10;' + 'Phone: ' + booking.tel) : 'Available'"
 
                                         th:attr="data-time=${timeLabel}, 
@@ -193,6 +198,12 @@
                                         onclick="handleSlotClick(this)">
                                         
                                         <span th:if="${isBooked}" th:text="${booking.status == 'pending' ? 'Pending' : 'Booked'}"></span>
+                                        <span th:unless="${isBooked}">&nbsp;</span>
+                                        <span class="cell-text" th:if="${isBooked}" 
+                                            th:text="${booking.purpose}" 
+                                            th:title="${booking.purpose}"> Subject
+                                        </span>
+    
                                         <span th:unless="${isBooked}">&nbsp;</span>
                                     </td>
                                 </tr>
