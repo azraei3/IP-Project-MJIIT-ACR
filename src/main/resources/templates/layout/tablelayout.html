@@ -1,0 +1,442 @@
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: linear-gradient(135deg, #e8d5d5 0%, #d4c5e8 100%);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(to right, #5a6c7d 0%, #8b6f7d 100%);
+            padding: 15px 0;
+            text-align: center;
+            border-bottom: 3px solid #fff;
+        }
+
+        .header img {
+            height: 80px;
+        }
+
+        /* Navigation */
+        .nav-container {
+            background: linear-gradient(to right, #6b7c8d 0%, #9b7f8d 100%);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #666;
+        }
+
+        .nav-tab {
+            padding: 12px 30px;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            font-weight: bold;
+            border-right: 2px solid #666;
+            transition: all 0.3s;
+        }
+
+        .nav-tab:last-child {
+            border-right: none;
+        }
+
+        .nav-tab:hover {
+            background: #f0f0f0;
+        }
+
+        .nav-tab.active {
+            background: #7a8a9a;
+            color: white;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-dropdown {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-select {
+            width: 100%;
+            padding: 10px 40px 10px 15px;
+            border: 2px solid #666;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .search-dropdown::after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            font-size: 12px;
+        }
+
+        .show-button {
+            padding: 10px 30px;
+            background: white;
+            border: 2px solid #666;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .show-button:hover {
+            background: #f0f0f0;
+        }
+
+        /* Main Container */
+        .main-container {
+            padding: 30px;
+            display: flex;
+            gap: 20px;
+        }
+
+        /* Left Section */
+        .left-section {
+            flex: 1;
+        }
+
+        .edit-button {
+            padding: 10px 30px;
+            background: #d4d4e8;
+            border: 2px solid #666;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .edit-button:hover {
+            background: #c4c4d8;
+        }
+
+        /* Timetable */
+        .timetable-header {
+            background: #e8e8f0;
+            padding: 15px;
+            border: 2px solid #666;
+            border-radius: 8px 8px 0 0;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .timetable-container {
+            border: 2px solid #666;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            overflow-x: auto;
+            background: white;
+        }
+
+        .timetable {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+
+        .timetable th,
+        .timetable td {
+            border: 1px solid #666;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .timetable th {
+            background: #e8e8f0;
+            font-weight: bold;
+        }
+
+        .timetable .day-cell {
+            background: #d4d4e8;
+            font-weight: bold;
+            width: 100px;
+        }
+
+        .timetable .time-header {
+            font-size: 9px;
+            padding: 5px 2px;
+        }
+
+        .timetable .booking-slot {
+            padding: 15px 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .timetable .booking-slot:hover {
+            opacity: 0.8;
+        }
+
+        .timetable .booking-slot.booked {
+            background: #ff4444;
+            color: white;
+        }
+
+        .timetable .booking-slot.pending {
+            background: #ffff44;
+            color: black;
+        }
+
+        .timetable .booking-slot.selected {
+            background: #44ff44;
+            color: black;
+        }
+
+        .timetable .booking-slot.maintenance {
+            background: #4444ff;
+            color: white;
+        }
+
+        .booking-info {
+            font-size: 9px;
+            line-height: 1.3;
+        }
+
+        /* Note Box */
+        .note-box {
+            background: white;
+            border: 2px solid #666;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .note-box h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .note-box p {
+            font-size: 13px;
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        /* Right Section - Legends */
+        .legends-container {
+            width: 250px;
+            background: white;
+            border: 2px solid #666;
+            border-radius: 8px;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        .legends-container h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: right;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .legend-color {
+            width: 40px;
+            height: 25px;
+            border: 1px solid #666;
+        }
+
+        .legend-color.booked {
+            background: #ff4444;
+        }
+
+        .legend-color.pending {
+            background: #ffff44;
+        }
+
+        .legend-color.selected {
+            background: #44ff44;
+        }
+
+        .legend-color.maintenance {
+            background: #4444ff;
+        }
+
+        .legend-label {
+            font-size: 13px;
+        }
+
+        .book-now-button {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            border: 2px solid #666;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .book-now-button:hover {
+            background: #f0f0f0;
+        }
+
+        /* Booking Request Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border: 3px solid #666;
+            border-radius: 12px;
+            padding: 30px;
+            width: 500px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ccc;
+        }
+
+        .booking-details {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+
+        .booking-details p {
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #666;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+        }
+
+        .booking-preview {
+            background: #ffb3ba;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-button {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #666;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .modal-button.confirm {
+            background: white;
+        }
+
+        .modal-button.confirm:hover {
+            background: #f0f0f0;
+        }
+
+        .modal-button.back {
+            background: white;
+        }
+
+        .modal-button.back:hover {
+            background: #f0f0f0;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .legends-container {
+                width: 100%;
+            }
+        }
+    </style>

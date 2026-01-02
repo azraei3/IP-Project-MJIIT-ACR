@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head>
+    <title>Admin Logbook</title>
+    <style>
+        /* Admin Tabs (Same as Timetable) */
+        .admin-tabs { display: flex; gap: 5px; margin-bottom: 20px; }
+        .admin-tab-btn { padding: 10px 20px; border: 2px solid #333; background: white; border-radius: 5px; font-weight: bold; text-decoration: none; color: black; }
+        .admin-tab-btn.active { background: #333; color: white; }
+        .admin-tab-btn:hover { background: #f0f0f0; }
+
+        /* Log Table Styling */
+        .log-table { font-size: 0.9rem; }
+        .log-table thead th { background-color: #f8f9fa; border-bottom: 2px solid #dee2e6; }
+        
+        /* Action Badges */
+        .badge-create { background-color: #d1e7dd; color: #0f5132; }
+        .badge-update { background-color: #fff3cd; color: #664d03; }
+        .badge-delete { background-color: #f8d7da; color: #842029; }
+        .badge-auth   { background-color: #cff4fc; color: #055160; }
+        
+        .timestamp-col { width: 180px; font-family: 'Courier New', monospace; color: #666; }
+    </style>
+</head>
+<body>
+
+<div layout:fragment="content">
+    
+    <div class="admin-tabs">
+        <a th:href="@{/admin/dashboard}" class="admin-tab-btn">Dashboard</a>
+        <a th:href="@{/admin/bookings}" class="admin-tab-btn">Requests</a>
+        <a th:href="@{/admin/timetable}" class="admin-tab-btn">Timetable</a>
+        <a th:href="@{/admin/logbook}" class="admin-tab-btn active">Logbook</a>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">System Logbook</h2>
+            <p class="text-muted small">Audit trail of administrator actions</p>
+        </div>
+        <form class="d-flex gap-2" th:action="@{/admin/logbook}" method="get">
+            <input type="text" name="search" class="form-control form-control-sm" placeholder="Search logs..." th:value="${search}">
+            <button class="btn btn-sm btn-dark" type="submit">Search</button>
+        </form>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 log-table">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Timestamp</th>
+                            <th>Admin / Actor</th>
+                            <th>Action Type</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="log : ${logs}">
+                            <td class="ps-4 timestamp-col" 
+                                th:text="${#temporals.format(log.timestamp, 'yyyy-MM-dd HH:mm:ss')}">
+                                2026-01-02 12:00:00
+                            </td>
+                            
+                            <td>
+                                <div class="fw-bold" th:text="${log.user.fullName}">Admin Name</div>
+                                <div class="small text-muted" th:text="${log.user.email}">admin@test.com</div>
+                            </td>
+                            
+                            <td>
+                                <span class="badge rounded-pill border"
+                                      th:classappend="${#strings.containsIgnoreCase(log.action, 'DELETE') ? 'badge-delete' : 
+                                                       (#strings.containsIgnoreCase(log.action, 'CREATE') ? 'badge-create' : 
+                                                       (#strings.containsIgnoreCase(log.action, 'UPDATE') ? 'badge-update' : 'badge-auth'))}"
+                                      th:text="${log.action}">
+                                    UPDATE_USER
+                                </span>
+                            </td>
+                            
+                            <td class="text-secondary" th:text="${log.details}">
+                                Changed role of user #123 to ADMIN
+                            </td>
+                        </tr>
+                        
+                        <tr th:if="${logs.empty}">
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <i class="fa fa-history fa-2x mb-2 opacity-50"></i>
+                                <p class="mb-0">No logs found.</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white text-end text-muted small">
+            Displaying latest <span th:text="${logs.size()}">0</span> records
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

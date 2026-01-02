@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head>
+    <title>My Reservations</title>
+    <style>
+        /* Custom Tab Styles */
+        .nav-tabs .nav-link {
+            color: #6c757d;
+            font-weight: 600;
+            padding: 12px 20px;
+        }
+        .nav-tabs .nav-link:hover {
+            color: #ffffff;
+            background-color: #070707;
+            border-color: #e9ecef;
+        }
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid #a8a5a5; /* Dark highlight line */
+        }
+        .badge-count {
+            font-size: 0.75em;
+            margin-left: 5px;
+            vertical-align: top;
+        }
+        .table-card {
+            border-top: none; 
+            border-radius: 0 0 8px 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div layout:fragment="content">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
+        <div>
+            <h2 class="fw-bold mb-1">My Reservations</h2>
+            <p class="text-muted small mb-0">Track and manage your room booking requests</p>
+        </div>
+        <a th:href="@{/user/timetable}" class="btn btn-utm">
+            <i class="fa fa-plus"></i> New Request</a>
+    </div>
+    
+    <!--Nav Bar-->
+    <ul class="nav nav-tabs border-bottom-0">
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentStatus == 'all' ? 'active' : ''}" 
+               th:href="@{/user/reservations(status='all')}">
+               All <span class="badge bg-light text-dark border badge-count" th:text="${countAll}">0</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentStatus == 'pending' ? 'active' : ''}" 
+               th:href="@{/user/reservations(status='pending')}">
+               Pending <span class="badge bg-warning text-dark badge-count" th:text="${countPending}">0</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentStatus == 'approved' ? 'active' : ''}" 
+               th:href="@{/user/reservations(status='approved')}">
+               Approved <span class="badge bg-success badge-count" th:text="${countApproved}">0</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentStatus == 'cancelled' ? 'active' : ''}" 
+               th:href="@{/user/reservations(status='cancelled')}">
+               Cancelled <span class="badge bg-danger badge-count" th:text="${countCancelled}">0</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="card shadow-sm border-0 table-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th class="py-3 ps-4" style="width: 10%;">ID</th>
+                            <th style="width: 25%;">Room Details</th>
+                            <th style="width: 20%;">Date & Time</th>
+                            <th style="width: 25%;">Purpose</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 10%;" class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="booking : ${bookings}">
+                            
+                            <td class="ps-4 fw-bold text-muted" th:text="${'#' + booking.id}"></td>
+                            
+                            <td>
+                                <div class="fw-bold text-dark" th:text="${booking.room.name}">Room Name</div>
+                                <div class="small text-muted">
+                                    <i class="fa fa-map-marker-alt me-1"></i>
+                                    <span th:text="${booking.room.roomId}">ID</span>
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div class="fw-bold" th:text="${booking.slotDate}">YYYY-MM-DD</div>
+                                <div class="small text-muted">
+                                    <span th:text="${booking.timeStart}"></span> - <span th:text="${booking.timeEnd}"></span>
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <span class="d-inline-block text-truncate" style="max-width: 200px;" 
+                                      th:text="${booking.purpose}" th:title="${booking.purpose}">
+                                </span>
+                            </td>
+                            
+                            <td>
+                                <span th:if="${booking.status == 'pending'}" class="badge bg-warning text-dark">
+                                    Pending
+                                </span>
+                                <span th:if="${booking.status == 'booked'}" class="badge bg-success">
+                                    Approved
+                                </span>
+                                <span th:if="${booking.status == 'cancelled'}" class="badge bg-danger">
+                                    Cancelled
+                                </span>
+                            </td>
+
+                            <td class="text-center">
+                                <form th:if="${booking.status != 'cancelled'}" 
+                                      th:action="@{/user/reservations/cancel}" method="post"
+                                      onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+                                    <input type="hidden" name="bookingId" th:value="${booking.id}">
+                                    <button class="btn btn-outline-danger btn-sm" title="Cancel Booking">
+                                        <i class="fa fa-ban"></i> Cancel
+                                    </button>
+                                </form>
+                                
+                                <span th:if="${booking.status == 'cancelled'}" class="text-muted small">
+                                    -
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr th:if="${bookings.empty}">
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fa fa-folder-open fa-2x mb-3"></i>
+                                <p>No reservation history found.</p>
+                                <a th:href="@{/user/timetable}" class="btn btn-sm btn-primary">Make your first booking</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

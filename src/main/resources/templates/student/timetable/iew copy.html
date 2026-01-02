@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head>
+    <title>Make Reservation</title>
+    <style>
+        /* Keep your existing beautiful styling */
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: linear-gradient(135deg, #b8c6db 0%, #c9b3d6 25%, #f5c6c6 50%, #f8d5d5 75%, #fce4e4 100%);
+        }
+        /* Custom Timetable Styles */
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .search-dropdown, .date-selector { 
+            padding: 12px; background: white; border: 2px solid #333; border-radius: 5px; cursor: pointer; min-width: 200px;
+        }
+        .show-btn { padding: 12px 30px; background: #e8e8e8; border: 2px solid #333; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        
+        .room-info { font-size: 18px; font-weight: bold; margin: 20px 0; color: #8b0000; }
+
+        /* Grid */
+        .timetable-container { overflow-x: auto; background: white; border: 2px solid #333; border-radius: 5px; }
+        .timetable { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        .timetable th, .timetable td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+        .timetable th { background-color: #d4a5a5; }
+        .day-cell { background-color: #f0f0f0; font-weight: bold; }
+        
+        /* Interactive Cells */
+        .selectable { cursor: pointer; background-color: white; transition: 0.2s; }
+        .selectable:hover { background-color: #e6fffa; }
+        .selectable.selected { background-color: #48bb78 !important; color: white; position: relative; }
+        .selectable.selected::after { content: '✓'; font-weight: bold; }
+        
+        /* Dropdowns */
+        .dropdown-container { position: relative; }
+        .room-dropdown, .date-picker-dropdown { display: none; position: absolute; top: 100%; left: 0; background: white; border: 2px solid #333; z-index: 1000; width: 100%; }
+        .room-dropdown.active, .date-picker-dropdown.active { display: block; }
+        .room-option { padding: 10px; cursor: pointer; }
+        .room-option:hover { background: #eee; }
+
+        /* Calendar Styles */
+        .date-picker-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 10px; }
+        .date-picker-day { padding: 5px; text-align: center; cursor: pointer; border-radius: 50%; }
+        .date-picker-day:hover { background: #eee; }
+        .date-picker-day.selected { background: #8b0000; color: white; }
+        .date-picker-day.disabled { color: #ccc; cursor: not-allowed; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .booking-modal { background: white; padding: 30px; border-radius: 10px; width: 400px; border: 2px solid #333; }
+        .booking-form-input, .booking-form-textarea { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .booking-confirm-btn { width: 100%; padding: 10px; background: #8b0000; color: white; border: none; border-radius: 5px; cursor: pointer; }
+
+        .selectable.booked {
+        background-color: #e53e3e !important; /* Red */
+        cursor: not-allowed;
+        }
+        /* Add these colors to make sure the slots are visible! */
+    .pending-slot {
+        background-color: #fef3c7 !important; /* Yellow */
+        color: #92400e !important;
+        cursor: not-allowed;
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .booked {
+        background-color: #e53e3e !important; /* Red */
+        color: white !important;
+        cursor: not-allowed;
+    }
+
+    .maintenance-slot {
+        background-color: #fed7aa !important; /* Orange */
+        color: #9a3412 !important;
+        cursor: not-allowed;
+    }
+    .legend {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        flex-wrap: wrap;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+    }
+    
+    .legend-color {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .legend-available { background: #dcfce7; }
+    .legend-selected { background: #fef3c7; }
+    .legend-pending { background: #dbeafe; }
+    .legend-booked { background: #fee2e2; }
+    .legend-recurring { background: #e0e7ff; color: #3730a3; border-left: 3px solid #4338ca; }
+    .legend-maintenance { background: #fed7aa; }
+    </style>
+</head>
+<body>
+
+<div layout:fragment="content">
+    
+    <div class="card shadow-sm mb-4 mt-4">
+        <div class="card-body">
+            <div class="search-box">
+                <div class="dropdown-container">
+                    <div class="search-dropdown" onclick="toggleRoomDropdown()">
+                        <span id="selectedRoom">Select Room...</span>
+                        <i class="fa fa-chevron-down float-end"></i>
+                    </div>
+                    <div class="room-dropdown" id="roomDropdown">
+                        <div th:each="room : ${rooms}" 
+                             class="room-option"
+                             th:data-id="${room.roomId}"
+                             th:data-name="${room.name}"
+                             th:data-capacity="${room.capacity}"
+                             th:onclick="selectRoom(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                             <span th:text="${room.name}"></span>
+                             <small class="text-muted" th:text="${' (' + room.capacity + ' pax)'}"></small>
+                        </div>
+                    </div>
+                    <input type="hidden" id="selectedRoomId">
+                </div>
+
+                <div class="dropdown-container">
+                    <div class="date-selector" onclick="toggleDatePicker()">
+                        <span id="selectedDateDisplay">Select Date...</span>
+                        <i class="fa fa-calendar float-end"></i>
+                    </div>
+                    <div class="date-picker-dropdown" id="datePicker">
+                        <div style="padding: 10px; display: flex; justify-content: space-between;">
+                            <button onclick="changeMonth(-1)" class="btn btn-sm">&lt;</button>
+                            <span id="currentMonth" style="font-weight: bold;"></span>
+                            <button onclick="changeMonth(1)" class="btn btn-sm">&gt;</button>
+                        </div>
+                        <div class="date-picker-days" id="calendarDays"></div>
+                    </div>
+                </div>
+
+                <button class="show-btn" onclick="updateHeader()">Update View</button>
+                <a th:href="@{/user/reservations}" class="btn btn-secondary ms-2" style="padding: 12px 20px; text-decoration: none; border: 2px solid #333; border-radius: 5px; font-weight: bold; background: white; color: black;">
+                    My Requests
+                </a>
+            </div>
+        </div>
+    </div>
+    <div id="timetableContainer" class="timetable-container">
+      <div class="legend">
+        <div class="legend-item"><span class="legend-color legend-available"></span> Available</div>
+        <div class="legend-item"><span class="legend-color legend-selected"></span> Selected</div>
+        <div class="legend-item"><span class="legend-color legend-pending"></span> Pending</div>
+        <div class="legend-item"><span class="legend-color legend-booked"></span> Booked</div>
+        <div class="legend-item"><span class="legend-color legend-maintenance"></span> Maintenance</div>
+        <div class="legend-item"><span class="legend-color legend-recurring"></span> Fixed Schedule</div>
+      </div>
+     </div> 
+    <div class="room-info" id="roomInfoHeader">
+        Please select a Room and Date to view availability.
+    </div>
+
+    <div class="timetable-container">
+        <table class="timetable">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>08:00</th><th>09:00</th><th>10:00</th><th>11:00</th>
+                    <th>12:00</th><th>13:00</th><th>14:00</th><th>15:00</th><th>16:00</th><th>17:00</th>
+                    <th>18:00</th><th>19:00</th><th>20:00</th><th>21:00</th><th>22:00</th><th>23:00</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="day : ${ {'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'} }">
+                    <td class="day-cell" th:text="${day}">Monday</td>
+                    
+                    <td class="selectable" onclick="selectSlot(this, '08:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '09:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '10:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '11:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '12:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '13:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '14:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '15:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '16:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '17:00')"></td>
+
+                    <td class="selectable" onclick="selectSlot(this, '18:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '19:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '20:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '21:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '22:00')"></td>
+                    <td class="selectable" onclick="selectSlot(this, '23:00')"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <button class="book-now-btn mt-3" style="width: 100%; padding: 15px; background: #2d3748; color: white; font-weight: bold; border: none; border-radius: 5px;" onclick="openBookingModal()">
+        Book Selected Slots
+    </button>
+
+    <div class="modal-overlay" id="bookingModal">
+        <div class="booking-modal">
+            <h3>Confirm Booking</h3>
+            <p id="modalSummary" class="text-muted mb-3"></p>
+            
+            <form th:action="@{/user/book}" method="post" id="realBookingForm">
+                <input type="hidden" name="roomId" id="formRoomId">
+                <input type="hidden" name="date" id="formDate">
+                <input type="hidden" name="startTime" id="formStartTime">
+                <input type="hidden" name="endTime" id="formEndTime">
+
+                <input type="text" name="subject" class="booking-form-input" placeholder="Subject (e.g., Study Group)" required>
+                <textarea name="purpose" class="booking-form-textarea" placeholder="Purpose Details..." required></textarea>
+                <input type="text" name="phone" class="booking-form-input" placeholder="Phone Number" required>
+
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-secondary flex-fill" onclick="closeBookingModal()">Cancel</button>
+                    <button type="button" class="booking-confirm-btn flex-fill" onclick="submitBooking()">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script layout:fragment="script">
+    let selectedDate = new Date();
+    let selectedSlots = [];
+
+    // --- INITIALIZE ---
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCalendar();
+        updateDateDisplay();
+    });
+
+    // --- ROOM LOGIC ---
+    function toggleRoomDropdown() {
+        document.getElementById('roomDropdown').classList.toggle('active');
+    }
+    function selectRoom(id, name) {
+        document.getElementById('selectedRoom').innerText = name;
+        document.getElementById('selectedRoomId').value = id;
+        document.getElementById('roomDropdown').classList.remove('active');
+        updateHeader();
+    }
+
+    // --- CALENDAR LOGIC ---
+    function toggleDatePicker() {
+        document.getElementById('datePicker').classList.toggle('active');
+    }
+    
+    function renderCalendar() {
+        const container = document.getElementById('calendarDays');
+        const monthLabel = document.getElementById('currentMonth');
+        container.innerHTML = '';
+
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth();
+        monthLabel.innerText = new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // Remove the "today" check that was blocking you
+        // const today = new Date(); 
+        // today.setHours(0,0,0,0);
+
+        // Blank spaces
+        for (let i = 0; i < firstDay; i++) {
+            let blank = document.createElement('div');
+            container.appendChild(blank);
+        }
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            let dayDiv = document.createElement('div');
+            dayDiv.className = 'date-picker-day';
+            dayDiv.innerText = i;
+
+            let checkDate = new Date(year, month, i);
+            
+            // --- CHANGE: Always allow clicking, regardless of date ---
+            dayDiv.onclick = () => {
+                selectedDate = checkDate;
+                renderCalendar();
+                updateDateDisplay();
+                document.getElementById('datePicker').classList.remove('active');
+                updateHeader(); 
+            };
+            
+            // Keep the 'selected' highlight
+            if (i === selectedDate.getDate() && month === selectedDate.getMonth()) {
+                dayDiv.classList.add('selected');
+            }
+            container.appendChild(dayDiv);
+        }
+    }
+
+    function changeMonth(delta) {
+        selectedDate.setMonth(selectedDate.getMonth() + delta);
+        renderCalendar();
+    }
+
+    function updateDateDisplay() {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('selectedDateDisplay').innerText = selectedDate.toLocaleDateString('en-GB', options);
+    }
+
+    // --- HEADER UPDATE ---
+    function updateHeader() {
+        const roomName = document.getElementById('selectedRoom').innerText;
+        const dateText = document.getElementById('selectedDateDisplay').innerText;
+        
+        if (roomName !== "Select Room...") {
+            document.getElementById('roomInfoHeader').innerText = `Viewing: ${roomName} on ${dateText}`;
+            
+            // ✅ THIS TRIGGERS THE RED SLOTS
+            fetchBookedSlots(); 
+        }
+    }
+
+    // --- SLOT SELECTION ---
+    function selectSlot(cell, time) {
+        if (cell.classList.contains('selected')) {
+            cell.classList.remove('selected');
+            selectedSlots = selectedSlots.filter(t => t !== time);
+        } else {
+            cell.classList.add('selected');
+            selectedSlots.push(time);
+        }
+        selectedSlots.sort(); // Keep times in order
+    }
+
+    // --- SUBMIT ---
+    function openBookingModal() {
+        const roomId = document.getElementById('selectedRoomId').value;
+        if (!roomId) { alert("Please select a room first!"); return; }
+        if (selectedSlots.length === 0) { alert("Please select at least one time slot!"); return; }
+
+        // Simple logic: First slot is start, Last slot + 1 hour is end
+        const startTime = selectedSlots[0]; 
+        // Logic to calculate end time (assuming 1 hour slots for simplicity)
+        // In real app, you'd parse "08:00", add 1 hour -> "09:00"
+        // For now, let's just send the start time and let Controller handle logic or end = start + 1hr
+        // Hack for demo: End time is just Start Time + 50 mins
+        let endHour = parseInt(selectedSlots[selectedSlots.length-1].split(':')[0]) + 1;
+        let endTime = (endHour < 10 ? '0' : '') + endHour + ":00";
+
+        document.getElementById('modalSummary').innerText = `Room: ${document.getElementById('selectedRoom').innerText}\nTime: ${startTime} - ${endTime}`;
+        
+        // Fill Hidden Fields
+        document.getElementById('formRoomId').value = roomId;
+        
+        // Format Date YYYY-MM-DD
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        document.getElementById('formDate').value = `${year}-${month}-${day}`;
+        
+        document.getElementById('formStartTime').value = startTime;
+        document.getElementById('formEndTime').value = endTime;
+
+        document.getElementById('bookingModal').classList.add('active');
+    }
+
+    function closeBookingModal() {
+        document.getElementById('bookingModal').classList.remove('active');
+    }
+
+    function submitBooking() {
+        document.getElementById('realBookingForm').submit();
+    }
+    async function fetchBookedSlots() {
+        const roomId = document.getElementById('selectedRoomId').value;
+        if (!roomId) return;
+
+        // 1. Calculate Sunday
+        const currentDay = selectedDate.getDay(); 
+        const startOfWeek = new Date(selectedDate);
+        startOfWeek.setDate(selectedDate.getDate() - currentDay);
+        
+
+        // 2. Prepare the Rows
+
+        const rows = document.querySelectorAll('.timetable tbody tr');
+        
+        rows.forEach((row, index) => {
+            // Calculate date for this row
+            let rowDate = new Date(startOfWeek);
+            rowDate.setDate(startOfWeek.getDate() + index);
+            
+            // --- CRITICAL FIX: Force Local YYYY-MM-DD ---
+            // This prevents "2025-01-02" becoming "2025-01-01" due to timezones
+            const offset = rowDate.getTimezoneOffset() * 60000;
+            const cleanISODate = new Date(rowDate.getTime() - offset).toISOString().split('T')[0];
+            
+            
+            // Tag the row so we can find it later
+            row.setAttribute('data-date', cleanISODate);
+        });
+
+        // 3. Fetch from API
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        const offset = startOfWeek.getTimezoneOffset() * 60000;
+        const startStr = new Date(startOfWeek.getTime() - offset).toISOString().split('T')[0];
+        const endStr = new Date(endOfWeek.getTime() - offset).toISOString().split('T')[0];
+
+        try {
+            const response = await fetch(`/api/bookings?roomId=${roomId}&start=${startStr}&end=${endStr}`);
+            const bookings = await response.json();
+
+            // Clear previous paintings
+            document.querySelectorAll('.selectable').forEach(c => {
+                c.classList.remove('booked', 'pending-slot', 'maintenance-slot');
+                c.style.backgroundColor = '';
+                c.style.pointerEvents = 'auto';
+                c.innerText = '';
+            });
+
+            // Paint new ones
+            bookings.forEach(booking => {
+                markTimeRangeAsBooked(booking.date, booking.start, booking.end, booking.status, booking.title);
+            });
+        } catch (error) {
+            console.error("Error loading bookings:", error);
+        }
+    }
+    /*// --- UPDATED FETCH LOGIC ---
+    async function fetchBookedSlots() {
+        const roomId = document.getElementById('selectedRoomId').value;
+        if (!roomId) return;
+
+        // 1. Calculate the Sunday start of the week
+        const currentDay = selectedDate.getDay(); 
+        const startOfWeek = new Date(selectedDate);
+        startOfWeek.setDate(selectedDate.getDate() - currentDay);
+        
+        // 2. Clear Grid & Prepare for Past Date Check
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const rows = document.querySelectorAll('.timetable tbody tr');
+        
+        // LOOP THROUGH ROWS TO LOCK PAST DAYS
+        rows.forEach((row, index) => {
+            // Calculate the specific date for this row (Sunday + index)
+            let rowDate = new Date(startOfWeek);
+            rowDate.setDate(startOfWeek.getDate() + index);
+            rowDate.setHours(0,0,0,0);
+
+            const cells = row.querySelectorAll('.selectable');
+            
+            // If this row is in the past, disable it entirely
+            if (rowDate < today) {
+                row.style.opacity = "0.5"; // Gray it out
+                row.style.pointerEvents = "none"; // Disable clicks
+                // Optional: visual indicator
+                cells.forEach(c => c.style.backgroundColor = "#eee");
+            } else {
+                // If it's today or future, enable it
+                row.style.opacity = "1";
+                row.style.pointerEvents = "auto";
+                cells.forEach(c => c.style.backgroundColor = ""); // Reset
+            }
+
+            // Reset booking classes
+            cells.forEach(cell => {
+                cell.classList.remove('booked', 'selected', 'pending-slot', 'maintenance-slot');
+                // Only reset pointer events if the ROW isn't disabled
+                if (rowDate >= today) cell.style.pointerEvents = 'auto';
+                cell.title = "";
+            });
+        });
+
+        // 3. Continue with API Fetching...
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+        const toISODate = (d) => {
+            const offset = d.getTimezoneOffset() * 60000;
+            return new Date(d.getTime() - offset).toISOString().split('T')[0];
+        };
+
+        const startStr = toISODate(startOfWeek);
+        const endStr = toISODate(endOfWeek);
+
+        try {
+            const response = await fetch(`/api/bookings?roomId=${roomId}&start=${startStr}&end=${endStr}`);
+            const bookings = await response.json();
+
+            bookings.forEach(booking => {
+                // Pass status and title to your painting function
+                markTimeRangeAsBooked(booking.date, booking.start, booking.end, booking.status, booking.title);
+            });
+        } catch (error) {
+            console.error("Error fetching bookings:", error);
+        }
+    }*/
+
+    function markTimeRangeAsBooked(dateStr, startStr, endStr, status, title) {
+        // FIND THE ROW BY EXACT DATE MATCH
+        const targetRow = document.querySelector(`.timetable tbody tr[data-date="${dateStr}"]`);
+
+        if (targetRow) {
+            let startHour = parseInt(startStr.split(':')[0]);
+            let endHour = parseInt(endStr.split(':')[0]);
+
+            const cells = targetRow.querySelectorAll('.selectable');
+            cells.forEach((cell, index) => {
+                const cellHour = 8 + index; 
+
+                if (cellHour >= startHour && cellHour < endHour) {
+                    // Lock the cell
+                    cell.style.pointerEvents = 'none';
+                    cell.classList.remove('selected', 'available');
+
+                    // Apply Visuals
+                    if (status === 'pending') {
+                        cell.classList.add('pending-slot'); // Uses the Yellow CSS above
+                        cell.innerText = "Pending";
+                        cell.title = "Pending Approval";
+                    } else if (status === 'maintenance') {
+                        cell.classList.add('maintenance-slot');
+                        cell.innerText = "Maint.";
+                    } else {
+                        cell.classList.add('booked');
+                        cell.innerText = "Booked";
+                    }
+                }
+            });
+        } else {
+            console.warn("Could not find row for date:", dateStr);
+        }
+    }
+    /*function markTimeRangeAsBooked(dateStr, startStr, endStr) {
+        // Parse the booking date to find the Day of Week
+        const bookingDate = new Date(dateStr);
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayName = daysOfWeek[bookingDate.getDay()]; // e.g., "Monday"
+
+        // Parse Times (e.g., "08:00" -> 8)
+        let startHour = parseInt(startStr.split(':')[0]);
+        let endHour = parseInt(endStr.split(':')[0]);
+
+        // Find the specific ROW for this Day
+        const rows = document.querySelectorAll('.timetable tbody tr');
+        let targetRow = null;
+        
+        rows.forEach(row => {
+            // Check if the first cell (Day Name) matches
+            if (row.querySelector('.day-cell').innerText.trim() === dayName) {
+                targetRow = row;
+            }
+        });
+
+        // Paint the cells in that row
+        if (targetRow) {
+        const cells = targetRow.querySelectorAll('.selectable');
+        cells.forEach((cell, index) => {
+            const cellHour = 8 + index; 
+            
+            if (cellHour >= startHour && cellHour < endHour) {
+                    // 1. Remove selection capability
+                    cell.classList.remove('selected');
+                    cell.style.pointerEvents = 'none'; // LOCK IT! Users can't click.
+                    
+                    // 2. Apply Color based on Status (Matches your teammate's logic)
+                    if (status === 'pending') {
+                        cell.classList.add('pending-slot'); // You need to add CSS for this (Yellow/Blue)
+                        cell.style.backgroundColor = '#fef3c7'; // Example Yellow
+                        cell.title = "Pending Approval: " + title;
+                    } else if (status === 'maintenance') {
+                        cell.classList.add('maintenance-slot');
+                        cell.style.backgroundColor = '#fed7aa'; // Example Orange
+                        cell.title = "Maintenance";
+                    } else {
+                        // Default to Booked (Red)
+                        cell.classList.add('booked'); 
+                        cell.style.backgroundColor = '#e53e3e'; 
+                        cell.title = "Reserved: " + title;
+                    }
+                    
+                    // Optional: Show text inside the cell if it's the first block
+                    if (cellHour === startHour) {
+                        cell.innerText = title || "Booked";
+                        cell.style.fontSize = "10px";
+                        cell.style.color = "black";
+                    }
+                }
+        });
+        }
+    }*/
+</script>
+
+</body>
+</html>

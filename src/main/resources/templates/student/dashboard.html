@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head><title>Student Dashboard</title></head>
+<body>
+
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
+            <div>
+                <h2 class="fw-bold">Student Dashboard</h2>
+                <p class="text-muted">Welcome back, <span class="fw-bold text-utm" th:text="${#authentication.name}">Student</span>!</p>
+            </div>
+            <a th:href="@{/profile}" class="btn btn-outline-secondary btn-sm">
+                <i class="fa fa-user-edit"></i> Edit Profile
+            </a>
+        </div>
+
+        <div class="row g-4">
+            
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100 border-0">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-3 text-utm">
+                            <i class="fa fa-calendar-plus fa-4x"></i>
+                        </div>
+                        <h4 class="card-title">Book a Room</h4>
+                        <p class="card-text text-muted">Check the timetable availability and make a new room reservation.</p>
+                        <a th:href="@{/user/timetable}" class="btn btn-utm btn-lg px-4 mt-3">
+                            Make Reservation
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100 border-0">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-3 text-secondary">
+                            <i class="fa fa-list-alt fa-4x"></i>
+                        </div>
+                        <h4 class="card-title">My Requests</h4>
+                        <p class="card-text text-muted">Check the status of your pending requests and view history.</p>
+                        <a th:href="@{/user/reservations}" class="btn btn-outline-dark btn-lg px-4 mt-3">
+                            View Status
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100 border-0">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-3 text-secondary">
+                            <i class="fa fa-list-alt fa-4x"></i>
+                        </div>
+                        <h4 class="card-title">Room Report Issue</h4>
+                        <p class="card-text text-muted">Report issue with classrom</p>
+                        <a th:href="@{/report/create}" class="btn btn-outline-dark btn-lg px-4 mt-3">
+                            Report Issue
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+</body>
+</html>

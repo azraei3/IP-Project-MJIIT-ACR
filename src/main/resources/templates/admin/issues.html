@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head><title>Room Issues</title></head>
+<body>
+
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
+            <h2>Reported Issues</h2>
+            <a th:href="@{/admin/dashboard}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Dashboard</a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Room</th>
+                            <th>Issue Type</th>
+                            <th>Description</th>
+                            <th>Reported By</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="issue : ${issues}">
+                            <td>
+                                <div class="fw-bold" th:text="${issue.room.name}"></div>
+                                <small class="text-muted" th:text="${issue.room.roomId}"></small>
+                            </td>
+                            
+                            <td><span class="badge bg-secondary" th:text="${issue.issueType}"></span></td>
+                            <td th:text="${issue.description}"></td>
+                            
+                            <td>
+                                <div th:text="${issue.reportedBy.fullName}"></div>
+                                <small class="text-muted" th:text="${#temporals.format(issue.reportedDate, 'dd-MM-yyyy HH:mm')}"></small>
+                            </td>
+                            
+                            <td th:text="${#temporals.format(issue.reportedDate, 'dd/MM/yyyy')}"></td>
+
+                            <td>
+                                <span th:if="${issue.status == 'pending'}" class="badge bg-danger">Pending</span>
+                                <span th:if="${issue.status == 'resolved'}" class="badge bg-success">Resolved</span>
+                            </td>
+
+                            <td>
+                                <form th:if="${issue.status == 'pending'}" 
+                                      th:action="@{/admin/issues/resolve}" method="post">
+                                    <input type="hidden" name="issueId" th:value="${issue.issueId}">
+                                    <button class="btn btn-success btn-sm" title="Mark Resolved">
+                                        <i class="fa fa-check"></i> Fix
+                                    </button>
+                                </form>
+                                <span th:if="${issue.status == 'resolved'}" class="text-muted small">
+                                    Fixed by <span th:text="${issue.resolvedBy.fullName}"></span>
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
