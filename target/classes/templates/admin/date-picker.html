@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Date - UTM Room Booking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .date-picker-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 400px;
+            padding: 0;
+            border-right: 2px dashed #cbd5e0;
+        }
+
+        .select-date-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .select-date-header span {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .calendar-container {
+            padding: 20px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 5px;
+        }
+
+        .nav-btn:hover {
+            color: #111827;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-size: 11px;
+            color: #6b7280;
+            font-weight: 500;
+            padding: 8px 0;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .calendar-day:hover {
+            background-color: #f3f4f6;
+        }
+
+        .calendar-day.inactive {
+            color: #d1d5db;
+        }
+
+        .calendar-day.today {
+            background-color: #dbeafe;
+            font-weight: 600;
+        }
+
+        .calendar-day.selected {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+        }
+
+        .calendar-day.highlight {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .quick-select {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+        }
+
+        .quick-select-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            cursor: pointer;
+        }
+
+        .quick-select-item:hover {
+            background-color: #f9fafb;
+        }
+
+        .quick-select-item .label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #111827;
+        }
+
+        .quick-select-item .icon {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #111827;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quick-select-item .date {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .time-selector {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .time-selector-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+        }
+
+        .time-selector-item .label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #111827;
+        }
+
+        .time-selector-item .icon {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #111827;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-selector-item .time {
+            font-size: 13px;
+            color: #111827;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="date-picker-container">
+        <div class="select-date-header">
+            <span>Select Date</span>
+            <span>▼</span>
+        </div>
+
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <h3>Nov 2025</h3>
+                <div class="calendar-nav">
+                    <button class="nav-btn" onclick="previousMonth()">‹</button>
+                    <button class="nav-btn" onclick="nextMonth()">›</button>
+                </div>
+            </div>
+
+            <div class="calendar-grid">
+                <div class="calendar-day-header">Mon</div>
+                <div class="calendar-day-header">Tue</div>
+                <div class="calendar-day-header">Wed</div>
+                <div class="calendar-day-header">Thu</div>
+                <div class="calendar-day-header">Fri</div>
+                <div class="calendar-day-header">Sat</div>
+                <div class="calendar-day-header">Sun</div>
+
+                <div class="calendar-day inactive">30</div>
+                <div class="calendar-day inactive">31</div>
+                <div class="calendar-day">1</div>
+                <div class="calendar-day">2</div>
+                <div class="calendar-day">3</div>
+                <div class="calendar-day">4</div>
+                <div class="calendar-day">5</div>
+
+                <div class="calendar-day">6</div>
+                <div class="calendar-day">7</div>
+                <div class="calendar-day">8</div>
+                <div class="calendar-day">9</div>
+                <div class="calendar-day">10</div>
+                <div class="calendar-day">11</div>
+                <div class="calendar-day">12</div>
+
+                <div class="calendar-day">13</div>
+                <div class="calendar-day">14</div>
+                <div class="calendar-day">15</div>
+                <div class="calendar-day">16</div>
+                <div class="calendar-day highlight">17</div>
+                <div class="calendar-day">18</div>
+                <div class="calendar-day">19</div>
+
+                <div class="calendar-day">20</div>
+                <div class="calendar-day">21</div>
+                <div class="calendar-day selected">22</div>
+                <div class="calendar-day">23</div>
+                <div class="calendar-day">24</div>
+                <div class="calendar-day">25</div>
+                <div class="calendar-day">26</div>
+
+                <div class="calendar-day">27</div>
+                <div class="calendar-day">28</div>
+                <div class="calendar-day">29</div>
+                <div class="calendar-day">30</div>
+                <div class="calendar-day inactive">1</div>
+                <div class="calendar-day inactive">2</div>
+                <div class="calendar-day inactive">3</div>
+            </div>
+
+            <div class="quick-select">
+                <div class="quick-select-item" onclick="selectToday()">
+                    <div class="label">
+                        <div class="icon">▭</div>
+                        <span>Today</span>
+                    </div>
+                    <div class="date">Wed, Nov 22</div>
+                </div>
+
+                <div class="quick-select-item" onclick="selectTomorrow()">
+                    <div class="label">
+                        <div class="icon">▭</div>
+                        <span>Tomorrow</span>
+                    </div>
+                    <div class="date">Thu, Nov 23</div>
+                </div>
+
+                <div class="quick-select-item" onclick="selectNextWeek()">
+                    <div class="label">
+                        <div class="icon">▭</div>
+                        <span>Next Week</span>
+                    </div>
+                    <div class="date">Wed, Nov 29</div>
+                </div>
+            </div>
+
+            <div class="time-selector">
+                <div class="time-selector-item">
+                    <div class="label">
+                        <div class="icon">🕐</div>
+                        <span>Time</span>
+                    </div>
+                    <div class="time">17:00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectToday() {
+            alert('Today selected: Wed, Nov 22');
+        }
+
+        function selectTomorrow() {
+            alert('Tomorrow selected: Thu, Nov 23');
+        }
+
+        function selectNextWeek() {
+            alert('Next Week selected: Wed, Nov 29');
+        }
+
+        function previousMonth() {
+            alert('Navigate to previous month');
+        }
+
+        function nextMonth() {
+            alert('Navigate to next month');
+        }
+
+        // Add click handlers for calendar days
+        document.querySelectorAll('.calendar-day:not(.inactive)').forEach(day => {
+            day.addEventListener('click', function() {
+                document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+    </script>
+</body>
+</html>

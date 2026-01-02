@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head><title>Report Results</title></head>
+<body>
+
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
+            <h2>Report Result</h2>
+            <a th:href="@{/admin/reports/usage}" class="btn btn-secondary btn-sm">Generate Another</a>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0" th:text="${reportTitle}">Report</h5>
+            </div>
+            <div class="card-body">
+                
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Category (Room)</th>
+                            <th class="text-end">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="row : ${results}">
+                            <td th:text="${row.label}">Room A</td>
+                            <td class="text-end fw-bold" th:text="${row.value}">10</td>
+                        </tr>
+                        <tr th:if="${results.empty}">
+                            <td colspan="2" class="text-center">No data found for this criteria.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="mt-4 text-end">
+                    <button onclick="window.print()" class="btn btn-outline-dark">
+                        <i class="fa fa-print"></i> Print PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

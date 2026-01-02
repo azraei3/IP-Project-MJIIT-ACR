@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Selection - UTM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dropdown-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 280px;
+            overflow: hidden;
+            border: 3px solid #6b3947;
+        }
+
+        .dropdown-section {
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .dropdown-section:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-header {
+            padding: 15px 20px;
+            background-color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .dropdown-header:hover {
+            background-color: #f9fafb;
+        }
+
+        .dropdown-content {
+            padding: 15px 20px;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #111827;
+        }
+
+        .radio-item input[type="radio"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #6b3947;
+        }
+
+        .radio-item label {
+            cursor: pointer;
+        }
+
+        .dropdown-arrow {
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .dropdown-section.expanded .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="dropdown-container">
+        <!-- Report Type Section 1 -->
+        <div class="dropdown-section">
+            <div class="dropdown-header">
+                <span>Select report type</span>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+        </div>
+
+        <!-- Report Type Section 2 (Expanded) -->
+        <div class="dropdown-section expanded">
+            <div class="dropdown-header">
+                <span>Select report type</span>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div class="dropdown-content">
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="daily" name="reportType1" value="daily">
+                        <label for="daily">Daily report</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="weekly" name="reportType1" value="weekly">
+                        <label for="weekly">Weekly report</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="monthly" name="reportType1" value="monthly">
+                        <label for="monthly">Monthly report</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="yearly" name="reportType1" value="yearly">
+                        <label for="yearly">Yearly report</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Type Section 3 (Collapsed with Radio) -->
+        <div class="dropdown-section">
+            <div class="dropdown-header">
+                <span>Select report type</span>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div class="dropdown-content">
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="daily2" name="reportType2" value="daily" checked>
+                        <label for="daily2">Daily report</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Content Section (Expanded) -->
+        <div class="dropdown-section expanded">
+            <div class="dropdown-header">
+                <span>Select report content</span>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div class="dropdown-content">
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="roomUsage" name="reportContent1" value="roomUsage">
+                        <label for="roomUsage">Room Usage Frequency</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="mostBooked" name="reportContent1" value="mostBooked">
+                        <label for="mostBooked">Most Booked Room</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="cancelled" name="reportContent1" value="cancelled">
+                        <label for="cancelled">Cancelled/Rejected requests</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Type Section 4 (Collapsed) -->
+        <div class="dropdown-section">
+            <div class="dropdown-header">
+                <span>Select report type</span>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+        </div>
+
+        <!-- Report Content Section 2 (Collapsed with Radio) -->
+        <div class="dropdown-section">
+            <div class="dropdown-header">
+                <span>Select report type</span>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div class="dropdown-content">
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="roomUsage2" name="reportContent2" value="roomUsage" checked>
+                        <label for="roomUsage2">Room Usage Frequency</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add interactivity for dropdown sections
+        document.querySelectorAll('.dropdown-header').forEach(header => {
+            header.addEventListener('click', function() {
+                const section = this.parentElement;
+                section.classList.toggle('expanded');
+            });
+        });
+    </script>
+</body>
+</html>

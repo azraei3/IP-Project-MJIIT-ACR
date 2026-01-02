@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head>
+    <title>Student Timetable</title>
+    <style>
+        .search-container { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .custom-dropdown { position: relative; min-width: 220px; }
+        .custom-dropdown-btn { width: 100%; padding: 12px; background: white; border: 2px solid #333; border-radius: 5px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .custom-dropdown-content { display: none; position: absolute; top: 105%; left: 0; width: 100%; background: white; border: 2px solid #333; border-radius: 5px; z-index: 1000; max-height: 300px; overflow-y: auto; }
+        .custom-dropdown-content.active { display: block; }
+        .dropdown-item-custom { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .dropdown-item-custom:hover { background: #f0f0f0; }
+        
+        .calendar-header { display: flex; justify-content: space-between; padding: 10px; background: #eee; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 10px; }
+        .calendar-day { padding: 8px; text-align: center; cursor: pointer; border-radius: 4px; }
+        .calendar-day:hover { background-color: #ddd; }
+
+        .timetable-container { overflow-x: auto; background: white; border: 2px solid #333; border-radius: 5px; margin-top: 20px; }
+        .timetable { border-collapse: collapse; width: 100%; empty-cells: show; min-width: 1000px; }
+        .timetable th, .timetable td { border: 1px solid #ccc; padding: 5px; text-align: center; min-width: 60px; height: 50px; vertical-align: middle; }
+        .timetable th { background-color: #d4a5a5; color: #333; padding: 10px; }
+        .day-cell { background-color: #f0f0f0; font-weight: bold; width: 120px; }
+        
+        .selectable { cursor: pointer; transition: 0.2s; }
+        .selectable:hover { background-color: #e6fffa; }
+        
+        /* Status Colors */
+        .selectable.my-booking { background-color: #3182ce !important; color: white; } /* Blue for mine */
+        .selectable.booked { background-color: #e53e3e !important; color: white; cursor: not-allowed; }
+        .selectable.pending { background-color: #ed8936 !important; color: white; }
+        .selectable.selected { background-color: #48bb78 !important; color: white; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .custom-modal { background: white; padding: 30px; border-radius: 10px; width: 500px; border: 2px solid #333; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .calendar-day.disabled { 
+            color: #ccc; 
+            cursor: not-allowed; 
+            background-color: #f9f9f9;
+        }
+        .selectable.past-slot {
+            background-color: #f4f4f4; 
+            cursor: not-allowed;
+            background-image: linear-gradient(45deg, #f4f4f4 25%, #eeeeee 25%, #eeeeee 50%, #f4f4f4 50%, #f4f4f4 75%, #eeeeee 75%, #eeeeee 100%);
+            background-size: 10px 10px;
+        }
+        .cell-text {
+            display: block;
+            width: 100%;
+            white-space: nowrap; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 11px; /* Smaller font to fit more text */
+            line-height: 1.2;
+            padding: 0 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div layout:fragment="content">
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body">
+                
+                <div class="search-container">
+                    <div class="custom-dropdown">
+                        <div class="custom-dropdown-btn" onclick="toggleDropdown('roomDropdown')">
+                            <span id="selectedRoomText">Select Room...</span>
+                            <i class="bi bi-chevron-down"></i>
+                        </div>
+                        <div id="roomDropdown" class="custom-dropdown-content">
+                            <div th:each="room : ${rooms}" 
+                                     class="dropdown-item-custom"
+                                     th:data-id="${room.roomId}"
+                                     th:data-name="${room.name}"
+                                     th:onclick="selectRoom(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                     <span th:text="${room.name}"></span>
+                                     <small class="text-muted" th:text="${' (' + room.capacity + ' pax)'}"></small>
+                            </div>
+                        </div>
+                        <input type="hidden" id="selectedRoomId">
+                    </div>
+
+                    <div class="custom-dropdown">
+                        <div class="custom-dropdown-btn" onclick="toggleDropdown('dateDropdown')">
+                            <span id="selectedDateText">Select Date...</span>
+                            <i class="bi bi-calendar"></i>
+                        </div>
+                        <div id="dateDropdown" class="custom-dropdown-content" style="width: 300px;">
+                            <div class="calendar-header">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="changeMonth(-1)">&lt;</button>
+                                <span id="currentMonthYear"></span>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="changeMonth(1)">&gt;</button>
+                            </div>
+                            <div id="calendarDays" class="calendar-grid"></div>
+                        </div>
+                        <input type="hidden" id="selectedDateRaw">
+                    </div>
+
+                    <button class="btn btn-dark" style="border: 2px solid #333; font-weight: bold;" onclick="loadTimetable()">
+                        Load Timetable
+                    </button>
+                </div>
+
+                <div class="d-flex gap-3 mb-3 small">
+                    <div class="d-flex align-items-center"><span style="width:15px; height:15px; border:1px solid #ccc; background:white; margin-right:5px;"></span> Available</div>
+                    <div class="d-flex align-items-center"><span style="width:15px; height:15px; background:#48bb78; margin-right:5px;"></span> Selected</div>
+                    <!--<div class="d-flex align-items-center"><span style="width:15px; height:15px; background:#3182ce; margin-right:5px;"></span> My Booking</div>-->
+                    <div class="d-flex align-items-center"><span style="width:15px; height:15px; background:#ed8936; margin-right:5px;"></span> Pending</div>
+                    <div class="d-flex align-items-center"><span style="width:15px; height:15px; background:#e53e3e; margin-right:5px;"></span> Booked</div>
+                </div>
+
+                <div th:if="${selectedRoomName}" class="alert alert-info d-flex align-items-center mb-3">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div>
+                        <strong>Viewing:</strong> <span th:text="${selectedRoomName}"></span> 
+                        <span> | Week of: </span> <span th:text="${selectedDate}"></span>
+                    </div>
+                </div>
+
+                <div class="timetable-container">
+                    <table class="timetable">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th th:each="i : ${#numbers.sequence(8, 23)}" th:text="${(i < 10 ? '0' + i : i) + ':00'}">08:00</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                             <tr th:if="${weekDays == null}">
+                                <td colspan="17" style="padding: 20px; color: #666;">Select Room and Date to view.</td>
+                            </tr>
+                            
+                            <tr th:if="${weekDays != null}" th:each="dayName : ${weekDays}">
+                                <td class="day-cell">
+                                    <div th:text="${dayName}"></div>
+                                    <div style="font-size: 11px; color: #666;" th:text="${weekDates.get(dayName)}"></div>
+                                </td>
+                                
+                                <td th:each="i : ${#numbers.sequence(8, 23)}"
+                                    th:with="hourStr=${i < 10 ? '0' + i : i},
+                                             timeLabel=${hourStr + ':00'},
+                                             currentDate=${weekDates.get(dayName)},
+                                             timeKey=${currentDate + '_' + timeLabel},
+                                             booking=${scheduleMap != null ? scheduleMap.get(timeKey) : null},
+                                             isBooked=${booking != null},
+                                             isPending=${isBooked and #strings.equalsIgnoreCase(booking.status, 'pending')},
+                                             isMine=${isBooked and booking.user.username == currentUsername},
+                                             isPast=${#temporals.createDate(currentDate, 'yyyy-MM-dd').isBefore(#temporals.createToday())}"
+
+                                    th:classappend="${isBooked} ? (${isPending} ? 'pending selectable' : (${isMine} ? 'my-booking selectable' : 'booked selectable')) : (${isPast} ? 'selectable past-slot' : 'selectable')"
+                                    
+                                    th:attr="data-time=${timeLabel}, 
+                                        data-date=${currentDate},
+                                        data-mine=${isMine},
+                                        data-booked=${isBooked},
+                                        data-status=${isBooked ? booking.status : ''}"
+                                             
+                                    onclick="handleSlotClick(this)">
+                                    
+                                    <span th:if="${isPending}">Pending</span>
+                                    <span th:if="${!isPending and isMine}">My Booking</span>
+                                    <span th:if="${!isPending and isBooked and !isMine}">Booked</span>
+                                    <span th:unless="${isBooked}">&nbsp;</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="btn btn-dark w-100 mt-3 p-3 fw-bold" onclick="openBookModal()">
+                    Book Selected Slots
+                </button>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="bookModal">
+            <div class="custom-modal">
+                <h4>Make a Booking</h4>
+                <!--<form th:action="@{/student/create-booking}" method="post">-->
+                    <form th:action="@{/user/book}" method="post">
+                    <input type="hidden" name="roomId" id="formRoomId">
+                    <input type="hidden" name="date" id="formDate">
+                    <input type="hidden" name="slots" id="formSlots">
+
+                    <div class="mb-3">
+                        <label>Purpose *</label>
+                        <input type="text" name="purpose" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Phone Number *</label>
+                        <input type="text" name="phone" class="form-control" required>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary flex-fill" onclick="closeModals()">Cancel</button>
+                        <button type="submit" class="btn btn-dark flex-fill">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <th:block layout:fragment="script">
+    <script th:inline="javascript">
+        
+        // --- 1. Initialize & Persist Selection ---
+        document.addEventListener("DOMContentLoaded", function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const rId = urlParams.get('roomId');
+            const dStr = urlParams.get('date');
+
+            /*[+
+                let sRoomName = [[${selectedRoomName}]];
+            +]*/
+
+            if(rId && sRoomName) {
+                document.getElementById('selectedRoomText').innerText = sRoomName;
+                document.getElementById('selectedRoomId').value = rId;
+                document.getElementById('formRoomId').value = rId;
+            }
+            if(dStr) {
+                document.getElementById('selectedDateText').innerText = dStr;
+                document.getElementById('selectedDateRaw').value = dStr;
+            }
+        });
+
+        // --- 2. Handle Slot Clicks (With Past Date Protection) ---
+        function handleSlotClick(cell) {
+            const isBooked = cell.getAttribute('data-booked') === 'true';
+            const isMine = cell.getAttribute('data-mine') === 'true';
+            const dateStr = cell.getAttribute('data-date'); // YYYY-MM-DD
+
+            // CHECK: Is this date in the past?
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const cellDate = new Date(dateStr);
+            
+            // Allow viewing details of past bookings, but prevent NEW selection
+            if (cellDate < today && !isBooked) {
+                // Silently ignore clicks on empty past slots
+                return;
+            }
+
+            if (isBooked) {
+                if(isMine) {
+                    alert("This is your booking. Go to 'My Requests' to cancel it.");
+                } else {
+                    alert("This slot is occupied.");
+                }
+            } else {
+                // Toggle selection (Only if not past)
+                cell.classList.toggle('selected');
+            }
+        }
+
+        // --- 3. Booking Logic ---
+        function openBookModal() {
+            const selectedCells = document.querySelectorAll('.selectable.selected');
+            if (selectedCells.length === 0) { 
+                alert("Please select time slots first."); 
+                return; 
+            }
+
+            let firstDate = selectedCells[0].getAttribute('data-date');
+            let times = [];
+            let consistent = true;
+
+            selectedCells.forEach(cell => {
+                if(cell.getAttribute('data-date') !== firstDate) consistent = false;
+                times.push(cell.getAttribute('data-time'));
+            });
+
+            if(!consistent) { 
+                alert("Please select slots from a single day only."); 
+                return; 
+            }
+
+            document.getElementById('formDate').value = firstDate;
+            document.getElementById('formSlots').value = JSON.stringify(times.sort());
+            
+            document.getElementById('bookModal').classList.add('active');
+        }
+
+        // --- 4. Utilities ---
+        function loadTimetable() {
+            const room = document.getElementById('selectedRoomId').value;
+            const date = document.getElementById('selectedDateRaw').value;
+            if(!room || !date) { alert("Select Room and Date"); return; }
+            window.location.href = `/user/timetable?roomId=${room}&date=${date}`;
+        }
+
+        function toggleDropdown(id) {
+            document.querySelectorAll('.custom-dropdown-content').forEach(el => {
+                if(el.id !== id) el.classList.remove('active');
+            });
+            document.getElementById(id).classList.toggle('active');
+        }
+        
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.custom-dropdown-content').forEach(el => el.classList.remove('active'));
+            }
+        });
+
+        function closeModals() {
+            document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active'));
+        }
+
+        function selectRoom(id, name) {
+            document.getElementById('selectedRoomText').innerText = name;
+            document.getElementById('selectedRoomId').value = id;
+            document.getElementById('formRoomId').value = id;
+            toggleDropdown('roomDropdown');
+        }
+
+        // --- 5. Calendar Logic (Gray out Past Dates) ---
+        let currentDate = new Date();
+        
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDayIndex = firstDay.getDay(); 
+            
+            // Helper to check for past dates
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('currentMonthYear').innerText = `${monthNames[month]} ${year}`;
+            
+            const grid = document.getElementById('calendarDays');
+            grid.innerHTML = "";
+            
+            // Empty slots
+            for (let i = 0; i < startDayIndex; i++) {
+                let div = document.createElement('div');
+                div.className = 'calendar-day empty';
+                grid.appendChild(div);
+            }
+            
+            // Days
+            for (let d = 1; d <= daysInMonth; d++) {
+                let div = document.createElement('div');
+                div.className = 'calendar-day';
+                div.innerText = d;
+                
+                // Create date object for this specific day
+                let thisDate = new Date(year, month, d);
+                
+                // Format string for form
+                let dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+                if (thisDate < today) {
+                    // DISABLE PAST DATES
+                    div.classList.add('disabled');
+                } else {
+                    // ENABLE FUTURE DATES
+                    div.onclick = () => {
+                        document.getElementById('selectedDateText').innerText = `${d} ${monthNames[month]}`;
+                        document.getElementById('selectedDateRaw').value = dateStr;
+                        // document.getElementById('formDate').value = dateStr; // Not needed here, set on booking
+                        toggleDropdown('dateDropdown');
+                    };
+                }
+                grid.appendChild(div);
+            }
+        }
+
+        function changeMonth(step) {
+            currentDate.setMonth(currentDate.getMonth() + step);
+            renderCalendar();
+        }
+        
+        // Init
+        renderCalendar();
+
+    </script>
+    </th:block>
+</body>
+</html>

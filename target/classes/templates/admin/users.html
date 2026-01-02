@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/main}">
+<head><title>User Management</title></head>
+<body>
+
+    <div layout:fragment="content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>User Management</h2>
+            <a th:href="@{/admin/dashboard}" class="btn btn-secondary btn-sm"><i class="fa fa-arrow-left"></i> Dashboard</a>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Full Name</th>
+                            <th>Email</th>
+                            <th>Current Role</th>
+                            <th>Update Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="user : ${users}">
+                            <td th:text="${user.userId}"></td>
+                            <td th:text="${user.fullName}" class="fw-bold"></td>
+                            <td th:text="${user.email}"></td>
+                            
+                            <td>
+                                <span th:text="${user.role}" 
+                                      th:class="${'badge ' + (user.role.name() == 'Admin' ? 'bg-danger' : (user.role.name() == 'Lecturer' ? 'bg-warning text-dark' : 'bg-info text-dark'))}">
+                                </span>
+                            </td>
+
+                            <td>
+                                <form th:action="@{/admin/users/update}" method="post" class="d-flex gap-2">
+                                    <input type="hidden" name="userId" th:value="${user.userId}">
+                                    <select name="role" class="form-select form-select-sm" style="width: auto;">
+                                        <option value="Student" th:selected="${user.role.name() == 'Student'}">Student</option>
+                                        <option value="Lecturer" th:selected="${user.role.name() == 'Lecturer'}">Lecturer</option>
+                                        <option value="Admin" th:selected="${user.role.name() == 'Admin'}">Admin</option>
+                                        <option value="Staff" th:selected="${user.role.name() == 'Staff'}">Staff</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-success btn-sm"><i class="fa fa-check"></i>Update</button>
+                                </form>
+                            </td>
+
+                            <td>
+                                <form th:action="@{/admin/users/delete}" method="post" onsubmit="return confirm('Delete this user?');">
+                                    <input type="hidden" name="userId" th:value="${user.userId}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fa fa-trash">Delete</i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
