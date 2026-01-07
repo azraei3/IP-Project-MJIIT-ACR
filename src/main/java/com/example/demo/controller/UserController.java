@@ -49,15 +49,28 @@ public class UserController {
         boolean registrationSuccess = userService.registerNewUser(user);
 
         if (registrationSuccess){
-            redirectAttributes.addFlashAttribute("successMessage", "Registration successful! You can now log in.");
+            redirectAttributes.addFlashAttribute("successMessage", "Registration successful! Please confirm your email address.");
             return "redirect:/login";
         }
         else{
-            redirectAttributes.addFlashAttribute("errorMessge", "Registration failed! Username or email already exist.");
+            redirectAttributes.addFlashAttribute("errorMessage", "Registration failed! Username or email already exist.");
             return "redirect:/register";
         }
     }
 
+    //verify email
+    @GetMapping("/verify")
+    public String verifyAccount(@RequestParam("token")String token, Model model){
+        boolean isVerified = userService.verifyUser(token);
+        
+        if (isVerified) {
+            model.addAttribute("successMessage", "Account verified successfully! You may now login.");
+        } else {
+            model.addAttribute("errorMessage", "Invalid or expired verification link.");
+        }
+        
+        return "auth/login"; // Redirect them to login page with message
+    }
     /*@GetMapping("/dashboard")
     public String showDashboard(){
         return "user/dashboard";
@@ -194,4 +207,6 @@ public class UserController {
             return "redirect:/user/dashboard";
         }
     }
+
+    
 }

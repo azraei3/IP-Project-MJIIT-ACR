@@ -1,7 +1,9 @@
 package com.example.demo.service;
 
 import com.example.demo.model.User;
+import com.example.demo.model.VerificationToken;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.repository.VerificationTokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,9 @@ public class UserService {
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Autowired private VerificationTokenRepository tokenRepository;
+    @Autowired private EmailService emailService;
 
     //@Autowired
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -42,15 +47,39 @@ public class UserService {
 
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(encodedPassword);
+        user.setEnabled(false);
 
         if (user.getRole() == null){
             user.setRole(User.Role.Student);
         }
 
         userRepository.save(user);
+
+        VerificationToken token = new VerificationToken(user);
+        tokenRepository.save(token);
+
+        emailService.sendVerificationEmail(user, token.getToken());
         return true;
     }
 
+    // NEW: Logic to verify the token
+    public boolean verifyUser(String token) {
+        VerificationToken vt = tokenRepository.findByToken(token);
+        
+        if (vt == null || vt.getExpiryDate().isBefore(LocalDateTime.now())) {
+            return false; // Invalid or Expired
+        }
+        
+        User user = vt.getUser();
+        user.setEnabled(true); // <--- UNLOCK ACCOUNT
+        
+        userRepository.save(user);
+        
+        // Optional: Delete token after use
+        tokenRepository.delete(vt); 
+        return true;
+    }
+    
     //updates profile of the currently logged in user
     public void updateUserProfile(String email, String newFullName, String newPhoneNumber){
         User user = userRepository.findByEmail(email);

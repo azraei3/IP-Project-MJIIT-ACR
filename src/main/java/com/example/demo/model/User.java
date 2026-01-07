@@ -53,6 +53,9 @@ public class User {
     @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
     
+    @Column(name = "enabled")
+    private Boolean enabled = false; // Default to false for new registrations
+
     //Default constructor
     public User(){}
 
@@ -90,4 +93,8 @@ public class User {
 
     public LocalDateTime getResetTokenExpiry(){return resetTokenExpiry;}
     public void setResetTokenExpiry(LocalDateTime resetTokenExpiry){this.resetTokenExpiry = resetTokenExpiry;}
+
+    // Getter & Setter
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
 }

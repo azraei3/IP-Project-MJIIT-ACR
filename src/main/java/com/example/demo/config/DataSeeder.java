@@ -23,6 +23,7 @@ public class DataSeeder {
                 newAdmin.setUsername("superadmin");
                 newAdmin.setFullName("Super Administrator");
                 newAdmin.setPhoneNumber("0123456789");
+                newAdmin.setEnabled(true);
                 
                 // IMPORTANT: Set the password (hashed) and Role
                 newAdmin.setPassword(passwordEncoder.encode("admin123")); 
