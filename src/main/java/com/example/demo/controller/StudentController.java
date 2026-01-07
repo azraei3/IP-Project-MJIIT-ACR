@@ -135,6 +135,12 @@ public class StudentController {
         User currentUser = userService.findUserByEmail(principal.getName());
 
         for (Booking b : bookings) {
+
+            // Skip cancelled bookings so students see the slot as available
+            if ("cancelled".equalsIgnoreCase(b.getStatus())) {
+                continue;
+            }
+
             String dateKey = b.getSlotDate().toString(); 
             int startHour = b.getTimeStart().getHour();
             int endHour = b.getTimeEnd().getHour();

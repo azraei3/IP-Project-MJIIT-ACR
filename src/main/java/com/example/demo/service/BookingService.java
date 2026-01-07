@@ -75,7 +75,7 @@ public class BookingService {
         }
         return true; // No conflict
     }
-    //Update Booking Status (Safe Version)
+    /*/Update Booking Status (Safe Version)
     public void updateBookingStatus(Integer bookingId, String newStatus, User admin) {
         if (bookingId != null) {
             Booking booking = bookingRepository.findById(bookingId).orElse(null);
@@ -93,9 +93,40 @@ public class BookingService {
                 sendNotificationEmail(booking, newStatus);
             }
         }
+    }*/
+
+        // NEW METHOD: Handles cancellation with a reason
+    public void cancelBooking(Integer bookingId, String reason, User admin) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking != null) {
+            // 1. Update DB Status
+            booking.setStatus("cancelled");
+            booking.setCancelledBy(admin);
+            booking.setCancelReason(reason); // Save reason to DB
+            booking.setCancelledAt(java.time.LocalDateTime.now());
+            
+            bookingRepository.save(booking);
+
+            // 2. Send Email with Reason
+            sendNotificationEmail(booking, "cancelled", reason);
+        }
     }
 
-    private void sendNotificationEmail(Booking booking, String status) {
+    // UPDATE EXISTING METHOD (To keep other parts of your app working)
+    public void updateBookingStatus(Integer bookingId, String status, User admin) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking != null) {
+            booking.setStatus(status);
+            if ("booked".equals(status)) {
+                booking.setApprovedBy(admin);
+            }
+            bookingRepository.save(booking);
+            
+            // Pass null for reason for standard updates
+            sendNotificationEmail(booking, status, null); 
+        }
+    }
+    private void sendNotificationEmail(Booking booking, String status, String reason) {
         try {
             String userEmail = booking.getUser().getEmail();
             String subject = "Booking Update: " + status.toUpperCase();
@@ -109,9 +140,14 @@ public class BookingService {
                         "Date: " + booking.getSlotDate() + "\n" +
                         "Time: " + booking.getTimeStart() + " - " + booking.getTimeEnd() + "\n\n" +
                         "Please keep this email for your reference.";
-            } else if ("cancelled".equalsIgnoreCase(status)) { // 'cancelled' matches DB enum for Rejected/Cancelled
+            
+            } else if ("cancelled".equalsIgnoreCase(status)) {
+                // Use the provided reason, or a default one
+                String reasonText = (reason != null && !reason.isEmpty()) ? reason : "Administrative Decision";
+                
                 messageText = "Dear " + booking.getUser().getFullName() + ",\n\n" +
                         "Your booking request has been REJECTED or CANCELLED.\n\n" +
+                        "Reason: " + reasonText + "\n\n" +  // <--- NEW: Display Reason
                         "Details:\n" +
                         "Room: " + booking.getRoom().getName() + "\n" +
                         "Date: " + booking.getSlotDate() + "\n\n" +
@@ -128,7 +164,6 @@ public class BookingService {
 
         } catch (Exception e) {
             System.err.println("⚠️ Failed to send email: " + e.getMessage());
-            // We catch the error so the system doesn't crash if internet is down
         }
     }
 
@@ -189,5 +224,7 @@ public class BookingService {
     }
 
     
-    
+    public Booking getBookingById(Integer id) {
+        return bookingRepository.findById(id).orElse(null);
+    }
 }

@@ -151,6 +151,11 @@ public class AdminController {
 
         // Inside showTimetableManagement method 
         for (Booking b : bookings) {
+
+            //skip cancelled booking
+            if ("cancelled".equalsIgnoreCase(b.getStatus())) {
+                continue; 
+            }
             // 2. Ensure you use the getters for the fields that have data
             String dateKey = b.getSlotDate().toString(); 
             int startHour = b.getTimeStart().getHour();
@@ -370,4 +375,30 @@ public class AdminController {
     }
 
     
+   @PostMapping("/delete-booking")
+    public String deleteBooking(@RequestParam("bookingId") Integer bookingId,
+                                @RequestParam("reason") String reason,
+                                Principal principal) {
+        
+        User admin = userService.findUserByEmail(principal.getName());
+        
+        // 1. Get booking details for redirecting later
+        Booking booking = bookingService.getBookingById(bookingId); 
+        String redirectUrl = "redirect:/admin/timetable";
+
+        if (booking != null) {
+            String roomId = booking.getRoom().getRoomId();
+            String dateStr = booking.getSlotDate().toString();
+            redirectUrl = "redirect:/admin/timetable?roomId=" + roomId + "&date=" + dateStr;
+
+            // 2. Call the new Service method
+            bookingService.cancelBooking(bookingId, reason, admin);
+
+            // 3. Log it
+            logService.log(admin, "CANCEL_BOOKING", 
+                "Cancelled Booking #" + bookingId + ". Reason: " + reason);
+        }
+
+        return redirectUrl;
+    }
 }
