@@ -1,8 +1,14 @@
 package com.example.demo.model;
 
+import java.util.List;
+
+
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
+
+// Import this
+// Import this
 import jakarta.persistence.*;
 
 @Entity
@@ -56,6 +62,10 @@ public class User {
     @Column(name = "enabled")
     private Boolean enabled = false; // Default to false for new registrations
 
+    // Change "user" to "reportedBy"
+    @OneToMany(mappedBy = "reportedBy", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RoomIssue> issues;
+
     //Default constructor
     public User(){}
 
@@ -97,4 +107,6 @@ public class User {
     // Getter & Setter
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public List<RoomIssue> getIssues() { return issues; }
+    public void setIssues(List<RoomIssue> issues) { this.issues = issues; }
 }

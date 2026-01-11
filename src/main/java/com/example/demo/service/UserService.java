@@ -118,7 +118,7 @@ public class UserService {
     private void sendEmail(String to, String resetUrl){
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
-        message.setSubject("Password Reset REquest");
+        message.setSubject("Password Reset Request");
         message.setText("Click the link to reset your password: " + resetUrl + "\n\nLink Expires in 30 minutes.");
         mailSender.send(message);
     }
