@@ -247,7 +247,12 @@ public class AdminController {
             if ("WEEKLY".equalsIgnoreCase(recurrence)) {
                 currentDate = currentDate.plusWeeks(1);
             } else if ("MONTHLY".equalsIgnoreCase(recurrence)) {
-                currentDate = currentDate.plusMonths(1);
+                // 1. Figure out which instance it is (e.g., 1st, 2nd, 3rd Wednesday)
+                int ordinal = (startDate.getDayOfMonth() - 1) / 7 + 1;
+                
+                // 2. Move to next month, but force it to that specific instance
+                currentDate = currentDate.plusMonths(1)
+                    .with(TemporalAdjusters.dayOfWeekInMonth(ordinal, startDate.getDayOfWeek()));
             } else {
                 break; // NONE = Stop after first run
             }
