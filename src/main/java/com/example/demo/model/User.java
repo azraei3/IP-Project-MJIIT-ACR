@@ -1,5 +1,7 @@
 package com.example.demo.model;
 
+import jakarta.persistence.CascadeType; // Import this
+import jakarta.persistence.OneToMany;   // Import this
 import java.util.List;
 
 
@@ -7,8 +9,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
-// Import this
-// Import this
 import jakarta.persistence.*;
 
 @Entity
